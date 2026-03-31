@@ -54,6 +54,54 @@ function escapeHtml(value = "") {
     .replaceAll('"', "&quot;");
 }
 
+function isBase64(value) {
+  if (typeof value !== "string" || !value.length) return false;
+  return /^[A-Za-z0-9+/=]+$/.test(value) && value.length % 4 === 0;
+}
+
+function extractBase64(value) {
+  if (typeof value !== "string") return "";
+  const normalized = value.trim();
+  if (normalized.includes(",")) {
+    return normalized.split(",").pop().trim();
+  }
+  return normalized;
+}
+
+async function requestMaskedPin(label) {
+  const dialog = document.createElement("dialog");
+  dialog.className = "modal";
+  dialog.innerHTML = `
+    <form class="modal-body glass" method="dialog">
+      <h3>${escapeHtml(label)}</h3>
+      <input name="pin" type="password" inputmode="numeric" pattern="\\d{4}" minlength="4" maxlength="4" placeholder="••••" required />
+      <menu class="inline">
+        <button value="cancel" class="ghost">Cancel</button>
+        <button value="default">Save</button>
+      </menu>
+    </form>
+  `;
+  document.body.appendChild(dialog);
+  dialog.showModal();
+  const form = dialog.querySelector("form");
+
+  return await new Promise((resolve) => {
+    form.onsubmit = (event) => {
+      const pin = form.pin.value.trim();
+      if (!/^\d{4}$/.test(pin)) {
+        event.preventDefault();
+        form.pin.reportValidity();
+        return;
+      }
+      resolve(pin);
+    };
+    dialog.addEventListener("close", () => {
+      if (!dialog.returnValue || dialog.returnValue === "cancel") resolve(null);
+      dialog.remove();
+    });
+  });
+}
+
 async function renderTab() {
   const current = activeTab;
   pageTitle.textContent = current === "dev" ? "Developer Vault" : `${current[0].toUpperCase()}${current.slice(1)} Vault`;
@@ -125,8 +173,13 @@ async function renderTab() {
           return;
         }
         if (item.data?.fileBlob) {
+          const blobBase64 = extractBase64(item.data.fileBlob);
+          if (!isBase64(blobBase64)) {
+            alert("File data is invalid.");
+            return;
+          }
           const a = document.createElement("a");
-          a.href = `data:application/octet-stream;base64,${item.data.fileBlob}`;
+          a.href = `data:application/octet-stream;base64,${blobBase64}`;
           a.download = item.data?.fileName || `${item.title}.bin`;
           a.click();
           return;
@@ -196,7 +249,18 @@ function itemFormFor(type, item = null) {
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onload = () => {
+      if (!reader.result) {
+        reject(new Error("Failed to read file contents"));
+        return;
+      }
+      const parts = String(reader.result).split(",");
+      if (parts.length < 2 || !parts[1]) {
+        reject(new Error("Failed to parse file: expected data URL payload"));
+        return;
+      }
+      resolve(parts[1]);
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -247,13 +311,13 @@ function openItemModal(item = null) {
 
 function attachSettingsHandlers() {
   content.querySelector('[data-action="change-pin"]').onclick = async () => {
-    const next = prompt("Enter new 4-digit PIN");
-    if (next && /^\d{4}$/.test(next)) await setPin(next, false);
+    const next = await requestMaskedPin("Enter new 4-digit PIN");
+    if (next) await setPin(next, false);
   };
 
   content.querySelector('[data-action="change-secret-pin"]').onclick = async () => {
-    const next = prompt("Enter new 4-digit secret PIN");
-    if (next && /^\d{4}$/.test(next)) await setPin(next, true);
+    const next = await requestMaskedPin("Enter new 4-digit secret PIN");
+    if (next) await setPin(next, true);
   };
 
   content.querySelector('[data-action="clear"]').onclick = async () => {
@@ -280,9 +344,13 @@ function attachSettingsHandlers() {
     i.onchange = async () => {
       const file = i.files?.[0];
       if (!file) return;
-      const text = await file.text();
-      await importData(JSON.parse(text));
-      renderTab();
+      try {
+        const text = await file.text();
+        await importData(JSON.parse(text));
+        renderTab();
+      } catch {
+        alert("Import failed. Please choose a valid JSON export.");
+      }
     };
     i.click();
   };

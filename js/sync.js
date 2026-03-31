@@ -2,6 +2,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./config.js";
 import { getMeta, listRawUnsynced, markSynced, setMeta, upsertFromCloud } from "./db.js";
 
 let supabaseClient = null;
+const SYNC_INTERVAL_MS = 18_000;
 
 async function getClient() {
   if (supabaseClient) return supabaseClient;
@@ -19,6 +20,9 @@ async function syncFiles(client, pending) {
     if (row.data?.v) continue;
     if (row.data?.fileBlob && !row.data?.cloud_path) {
       const cleanBase64 = row.data.fileBlob.split(",").pop();
+      if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64 || "")) {
+        throw new Error("Invalid file data format");
+      }
       const binary = Uint8Array.from(atob(cleanBase64), (char) => char.charCodeAt(0));
       const path = `${row.id}-${Date.now()}-${row.title}`;
       const { error } = await client.storage.from("vault-files").upload(path, binary, { upsert: true });
@@ -69,6 +73,6 @@ export async function syncNow(setSyncLabel = () => {}) {
 
 export function setupSyncListeners(onSync) {
   window.addEventListener("online", onSync);
-  const tick = setInterval(onSync, 18_000);
-  return () => clearInterval(tick);
+  const syncIntervalId = setInterval(onSync, SYNC_INTERVAL_MS);
+  return () => clearInterval(syncIntervalId);
 }

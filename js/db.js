@@ -128,7 +128,7 @@ export async function setMeta(key, value) {
 export async function getMeta(key) {
   await initDB();
   const result = await withStore(META_STORE, "readonly", (store) => store.get(key));
-  return result?.value;
+  return result?.value ?? null;
 }
 
 export async function clearAllData() {
