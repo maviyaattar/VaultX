@@ -7,14 +7,15 @@ const LAST_SECRET_SYNC_KEY = 'vaultx_last_secret_sync';
 
 class SyncEngine {
   constructor(supabaseClient, db, options = {}) {
-    this.client      = supabaseClient;
-    this.db          = db;
-    this.vault       = options.vault || 'main';
-    this.lastSyncKey = options.lastSyncKey || LAST_SYNC_KEY;
-    this.syncing     = false;
-    this.syncTimer   = null;
-    this._indicator  = null;
-    this.online      = navigator.onLine;
+    this.client           = supabaseClient;
+    this.db               = db;
+    this.vault            = options.vault || 'main';
+    this.lastSyncKey      = options.lastSyncKey || LAST_SYNC_KEY;
+    this.syncing          = false;
+    this.syncTimer        = null;
+    this._indicator       = null;
+    this.online           = navigator.onLine;
+    this._autoSyncStarted = false;
   }
 
   setIndicator(el) { this._indicator = el; }
@@ -129,9 +130,24 @@ class SyncEngine {
           const { error } = await this.client.storage.from(STORAGE_BUCKET).upload(path, blob, { upsert: true });
           if (!error) {
             const { data: urlData } = this.client.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-            await this.db.update(item.id, {
-              data: { ...item.data, storageUrl: urlData.publicUrl, fileData: null }
-            });
+            const updatedData = { ...item.data, storageUrl: urlData.publicUrl, fileData: null };
+            await this.db.update(item.id, { data: updatedData });
+            // Push updated metadata row (with storageUrl) to Supabase and mark synced
+            const { error: upsertErr } = await this.client.from(TABLE_NAME).upsert({
+              id:         item.id,
+              type:       item.type,
+              title:      item.title,
+              data:       updatedData,
+              folder:     item.folder,
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              deleted:    item.deleted,
+              favorite:   item.favorite,
+              vault:      this.vault
+            }, { onConflict: 'id' });
+            if (!upsertErr) {
+              await this.db.markSynced(item.id);
+            }
           }
         } catch (e) {
           console.warn('File sync failed for', item.id, e);
@@ -161,18 +177,22 @@ class SyncEngine {
   }
 
   startAutoSync(intervalMs = 60000) {
-    window.addEventListener('online', () => {
-      this.online = true;
-      const netEl = document.getElementById('net-indicator');
-      if (netEl) { netEl.className = 'net-indicator'; }
-      this.sync();
-    });
-    window.addEventListener('offline', () => {
-      this.online = false;
-      const netEl = document.getElementById('net-indicator');
-      if (netEl) { netEl.className = 'net-indicator offline'; }
-    });
+    if (!this._autoSyncStarted) {
+      this._autoSyncStarted = true;
+      window.addEventListener('online', () => {
+        this.online = true;
+        const netEl = document.getElementById('net-indicator');
+        if (netEl) { netEl.className = 'net-indicator'; }
+        this.sync();
+      });
+      window.addEventListener('offline', () => {
+        this.online = false;
+        const netEl = document.getElementById('net-indicator');
+        if (netEl) { netEl.className = 'net-indicator offline'; }
+      });
+    }
     if (intervalMs > 0) {
+      if (this.syncTimer) clearInterval(this.syncTimer);
       this.syncTimer = setInterval(() => this.sync(), intervalMs);
     }
     if (!navigator.onLine) {
@@ -198,4 +218,9 @@ function initSyncEngines(supabaseClient) {
     vault: 'secret',
     lastSyncKey: LAST_SECRET_SYNC_KEY
   });
+}
+
+function trySyncAll() {
+  if (syncEngine)       syncEngine.sync();
+  if (secretSyncEngine) secretSyncEngine.sync();
 }
