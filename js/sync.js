@@ -156,42 +156,95 @@ class SyncEngine {
     }
   }
 
-  async function sync(){
-  if(!navigator.onLine) return;
+  // 🔄 SYNC FUNCTION (FULL WORKING + ALERT DEBUG)
 
-  let tx = db.transaction("items","readonly");
-  let req = tx.objectStore("items").getAll();
+function sync() {
 
-  req.onsuccess = async ()=>{
-    let items = req.result.filter(i => !i.synced);
+  alert("🔄 Sync started");
 
-    for(let i of items){
+  // 🌐 Check internet
+  if (!navigator.onLine) {
+    alert("❌ Offline - sync skipped");
+    return;
+  }
 
-      // ✅ CLEAN OBJECT (IMPORTANT FIX)
-      const cleanItem = {
-        id: i.id,
-        type: i.type,
-        title: i.title,
-        data: i.data,
-        folder: i.folder,
-        created_at: i.created_at
-      };
+  if (!db) {
+    alert("❌ DB not ready");
+    return;
+  }
 
-      const { error } = await supabaseClient
-        .from("vault_data")
-        .insert([cleanItem]);
+  try {
+    let tx = db.transaction("items", "readonly");
+    let store = tx.objectStore("items");
+    let req = store.getAll();
 
-      // 🔥 DEBUG
-      if(error){
-        alert("SYNC ERROR: " + JSON.stringify(error));
-      } else {
-        console.log("SYNC SUCCESS");
+    req.onsuccess = function () {
 
-        let tx2 = db.transaction("items","readwrite");
-        i.synced = true;
-        tx2.objectStore("items").put(i);
+      let allItems = req.result || [];
+      alert("📦 Total items: " + allItems.length);
+
+      let unsynced = allItems.filter(i => !i.synced);
+      alert("🚀 Unsynced items: " + unsynced.length);
+
+      if (unsynced.length === 0) {
+        alert("✅ Nothing to sync");
+        return;
       }
-    }
+
+      // 🔁 Loop items
+      unsynced.forEach(async (i) => {
+
+        try {
+
+          // ✅ CLEAN OBJECT (IMPORTANT)
+          let cleanItem = {
+            id: i.id,
+            type: i.type,
+            title: i.title,
+            data: i.data,
+            folder: i.folder,
+            created_at: i.created_at
+          };
+
+          alert("📤 Sending: " + JSON.stringify(cleanItem));
+
+          const { error } = await supabaseClient
+            .from("vault_data")
+            .upsert([cleanItem], { onConflict: "id" });
+
+          if (error) {
+            alert("❌ SYNC ERROR: " + error.message);
+            console.log(error);
+            return;
+          }
+
+          alert("✅ Synced: " + i.id);
+
+          // 🔄 mark synced
+          let tx2 = db.transaction("items", "readwrite");
+          let store2 = tx2.objectStore("items");
+
+          i.synced = true;
+          store2.put(i);
+
+        } catch (err) {
+          alert("🔥 LOOP ERROR: " + err.message);
+          console.log(err);
+        }
+
+      });
+
+      alert("🎉 Sync process done");
+
+    };
+
+    req.onerror = function () {
+      alert("❌ DB READ ERROR");
+    };
+
+  } catch (err) {
+    alert("🔥 SYNC CRASH: " + err.message);
+    console.log(err);
   }
 }
 
