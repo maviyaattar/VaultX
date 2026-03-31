@@ -176,36 +176,26 @@ class SyncEngine {
   }
 
   async sync() {
-    if (this.syncing) return;
-    this.syncing = true;
+  alert("SYNC START");
 
-    this._setStatus('syncing');
+  try {
 
-    try {
-      if (!navigator.onLine) return;
-
-      console.log("🔄 Sync started");
-
-      const pushed  = await this.pushLocalChanges();
-      await this.syncFiles();
-      const folders = await this.pushFolderChanges();
-      const pulled  = await this.pullRemoteChanges();
-
-      this.setLastSync(new Date().toISOString());
-
-      console.log("✅ Sync done:", { pushed, pulled, folders });
-
-      this._setStatus('ok');
-      window.dispatchEvent(new Event('vault:synced'));
-
-    } catch (err) {
-      console.error("❌ Sync error:", err);
-      this._setStatus('error');
-    } finally {
-      this.syncing = false;
+    if (!navigator.onLine) {
+      alert("OFFLINE");
+      return;
     }
-  }
 
+    alert("CALLING pushLocalChanges");
+
+    const pushed = await this.pushLocalChanges();
+
+    alert("PUSHED: " + pushed);
+
+  } catch (err) {
+    alert("SYNC ERROR: " + err.message);
+    console.error(err);
+  }
+}
   startAutoSync(intervalMs = 60000) {
     if (!this._autoSyncStarted) {
       this._autoSyncStarted = true;
