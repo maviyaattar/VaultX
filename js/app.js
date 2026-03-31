@@ -127,11 +127,18 @@ async function registerServiceWorker() {
       const reg = await navigator.serviceWorker.register('/sw.js');
       navigator.serviceWorker.addEventListener('message', e => {
         if (e.data?.type === 'SYNC_REQUESTED') {
-          syncEngine?.sync();
+          trySyncAll();
+        }
+      });
+      // Re-register background sync tag each time we come online so the SW
+      // can also notify clients when connectivity is restored.
+      window.addEventListener('online', () => {
+        if ('sync' in reg) {
+          reg.sync.register('vault-sync').catch(err => console.warn('BG sync register failed:', err));
         }
       });
       if ('sync' in reg) {
-        reg.sync.register('vault-sync').catch(() => {});
+        reg.sync.register('vault-sync').catch(err => console.warn('BG sync register failed:', err));
       }
     } catch (err) {
       console.warn('SW registration failed:', err);
@@ -302,6 +309,8 @@ function setupSearch() {
 }
 
 // ── Supabase init ─────────────────────────────────────────────
+let _vaultUnlockedListenerAdded = false;
+
 function initSupabase() {
   try {
     if (typeof supabase !== 'undefined' && supabase.createClient) {
@@ -309,12 +318,19 @@ function initSupabase() {
       initSyncEngines(supabaseClient);
       const syncEl = document.getElementById('sync-indicator');
       syncEngine.setIndicator(syncEl);
+      // Start auto-sync with interval for main vault; secret vault gets online
+      // listener only (no separate interval needed).
       syncEngine.startAutoSync(60000);
-      // Sync after unlock
-      window.addEventListener('vault:unlocked', () => {
-        syncEngine.sync();
-        secretSyncEngine.sync();
-      });
+      secretSyncEngine.startAutoSync(0);
+      // Sync after unlock (guard against duplicate listeners on re-init)
+      if (!_vaultUnlockedListenerAdded) {
+        _vaultUnlockedListenerAdded = true;
+        window.addEventListener('vault:unlocked', () => trySyncAll());
+      }
+      // Delay by one tick to let the rest of init() finish before syncing.
+      if (navigator.onLine) {
+        setTimeout(trySyncAll, 500);
+      }
     }
   } catch (err) {
     console.warn('Supabase init failed:', err);

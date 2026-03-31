@@ -37,15 +37,31 @@ self.addEventListener('activate', event => {
   );
 });
 
+let swWasOffline = false;
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Network-first for Supabase API calls
+  // Network-first for Supabase API calls; track offline→online transition
   if (url.hostname.includes('supabase.co')) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(event.request)
+        .then(response => {
+          // Connectivity just returned – notify all clients to sync
+          if (swWasOffline) {
+            swWasOffline = false;
+            self.clients.matchAll().then(clients => {
+              clients.forEach(c => c.postMessage({ type: 'SYNC_REQUESTED' }));
+            }).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => {
+          swWasOffline = true;
+          return caches.match(event.request);
+        })
     );
     return;
   }
