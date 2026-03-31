@@ -156,25 +156,44 @@ class SyncEngine {
     }
   }
 
-  async sync() {
-    if (!navigator.onLine || this.syncing) return;
-    this.syncing = true;
-    this._setStatus('syncing');
-    try {
-      await this.pushLocalChanges();
-      await this.pushFolderChanges();
-      await this.pullRemoteChanges();
-      await this.syncFiles();
-      this.setLastSync(new Date().toISOString());
-      this._setStatus('ok');
-      window.dispatchEvent(new CustomEvent('vault:synced', { detail: { vault: this.vault } }));
-    } catch (err) {
-      console.error('Sync error:', err);
-      this._setStatus('error');
-    } finally {
-      this.syncing = false;
+  async function sync(){
+  if(!navigator.onLine) return;
+
+  let tx = db.transaction("items","readonly");
+  let req = tx.objectStore("items").getAll();
+
+  req.onsuccess = async ()=>{
+    let items = req.result.filter(i => !i.synced);
+
+    for(let i of items){
+
+      // ✅ CLEAN OBJECT (IMPORTANT FIX)
+      const cleanItem = {
+        id: i.id,
+        type: i.type,
+        title: i.title,
+        data: i.data,
+        folder: i.folder,
+        created_at: i.created_at
+      };
+
+      const { error } = await supabaseClient
+        .from("vault_data")
+        .insert([cleanItem]);
+
+      // 🔥 DEBUG
+      if(error){
+        alert("SYNC ERROR: " + JSON.stringify(error));
+      } else {
+        console.log("SYNC SUCCESS");
+
+        let tx2 = db.transaction("items","readwrite");
+        i.synced = true;
+        tx2.objectStore("items").put(i);
+      }
     }
   }
+}
 
   startAutoSync(intervalMs = 60000) {
     if (!this._autoSyncStarted) {
