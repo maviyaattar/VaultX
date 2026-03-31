@@ -1,7 +1,7 @@
 /* ============================================================
    app.js – Main app orchestration for VaultX
    ============================================================ */
-
+alert("APP.JS LOADED ✅");
 // ── State ─────────────────────────────────────────────────────
 let currentTab    = 'passwords';
 let supabaseClient = null;
