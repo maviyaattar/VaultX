@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6C63FF" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="VaultX" />
+  <meta name="description" content="Secure offline-first vault for passwords, files, and developer keys" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <title>VaultX – Secure Vault</title>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     PIN LOCK SCREEN
+═══════════════════════════════════════════════════════════════ -->
+<div id="lock-screen">
+  <div class="lock-logo">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 4L34 10V20Q34 30 20 36Q6 30 6 20V10Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+      <rect x="13" y="22" width="14" height="10" rx="2.5" fill="white"/>
+      <path d="M15 22V17Q15 13 20 13Q25 13 25 17V22" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="20" cy="26" r="2" fill="#6C63FF"/>
+      <rect x="19" y="26" width="2" height="3.5" rx="1" fill="#6C63FF"/>
+    </svg>
+  </div>
+  <h1 class="lock-title">VaultX</h1>
+  <p class="lock-subtitle">Enter your PIN to unlock</p>
+  <div class="pin-dots" id="pin-dots"></div>
+  <div class="pin-pad" id="pin-pad">
+    <button class="pin-btn" data-val="1">1<span class="pin-sub"></span></button>
+    <button class="pin-btn" data-val="2">2<span class="pin-sub">ABC</span></button>
+    <button class="pin-btn" data-val="3">3<span class="pin-sub">DEF</span></button>
+    <button class="pin-btn" data-val="4">4<span class="pin-sub">GHI</span></button>
+    <button class="pin-btn" data-val="5">5<span class="pin-sub">JKL</span></button>
+    <button class="pin-btn" data-val="6">6<span class="pin-sub">MNO</span></button>
+    <button class="pin-btn" data-val="7">7<span class="pin-sub">PQRS</span></button>
+    <button class="pin-btn" data-val="8">8<span class="pin-sub">TUV</span></button>
+    <button class="pin-btn" data-val="9">9<span class="pin-sub">WXYZ</span></button>
+    <button class="pin-btn pin-del" data-val="del">⌫</button>
+    <button class="pin-btn" data-val="0">0</button>
+    <button class="pin-btn pin-ok" data-val="ok">OK</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECRET VAULT (Hidden panel)
+═══════════════════════════════════════════════════════════════ -->
+<div id="secret-panel">
+
+  <!-- Secret lock screen -->
+  <div id="secret-lock-screen">
+    <div class="lock-logo" style="background:linear-gradient(135deg,#FF3366,#CC0033);box-shadow:0 8px 32px rgba(255,51,102,0.4)">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 4L34 10V20Q34 30 20 36Q6 30 6 20V10Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+        <rect x="13" y="22" width="14" height="10" rx="2.5" fill="white"/>
+        <path d="M15 22V17Q15 13 20 13Q25 13 25 17V22" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1 class="secret-lock-title">Secret Vault</h1>
+    <p class="secret-lock-subtitle">Ultra-sensitive. Handle with care.</p>
+    <div class="pin-dots" id="secret-pin-dots"></div>
+    <div class="pin-pad" id="secret-pin-pad">
+      <button class="pin-btn" data-val="1">1</button>
+      <button class="pin-btn" data-val="2">2<span class="pin-sub">ABC</span></button>
+      <button class="pin-btn" data-val="3">3<span class="pin-sub">DEF</span></button>
+      <button class="pin-btn" data-val="4">4<span class="pin-sub">GHI</span></button>
+      <button class="pin-btn" data-val="5">5<span class="pin-sub">JKL</span></button>
+      <button class="pin-btn" data-val="6">6<span class="pin-sub">MNO</span></button>
+      <button class="pin-btn" data-val="7">7<span class="pin-sub">PQRS</span></button>
+      <button class="pin-btn" data-val="8">8<span class="pin-sub">TUV</span></button>
+      <button class="pin-btn" data-val="9">9<span class="pin-sub">WXYZ</span></button>
+      <button class="pin-btn pin-del" data-val="del" style="background:rgba(255,51,102,0.1);border-color:rgba(255,51,102,0.2)">⌫</button>
+      <button class="pin-btn" data-val="0">0</button>
+      <button class="pin-btn pin-ok" data-val="ok" style="background:linear-gradient(135deg,#FF3366,#CC0033)">OK</button>
+    </div>
+    <div class="pin-error" id="secret-pin-error"></div>
+  </div>
+
+  <!-- Secret vault header -->
+  <div id="secret-header">
+    <button class="secret-back-btn" id="secret-back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h2>🔴 Secret Vault</h2>
+    <span id="secret-count" class="section-count" style="background:rgba(255,51,102,0.1);border-color:rgba(255,51,102,0.2);color:#FF3366">0</span>
+  </div>
+
+  <!-- Secret vault content -->
+  <div id="secret-content">
+    <div id="secret-items-list"></div>
+  </div>
+
+  <!-- Secret FAB -->
+  <button class="secret-fab" id="secret-fab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+</div>
+
+<!-- Secret add/edit modal -->
+<div class="modal-backdrop" id="secret-add-modal">
+  <div class="modal-sheet" style="background:#0d0010;border-top:2px solid rgba(255,51,102,0.3)">
+    <div class="modal-handle" style="background:rgba(255,51,102,0.2)"></div>
+    <div class="modal-title" id="secret-modal-title" style="color:#FF3366">Add Secret</div>
+    <div class="form-group">
+      <label class="form-label" for="secret-item-title">Title</label>
+      <input type="text" class="form-input" id="secret-item-title" placeholder="e.g. Master Password" style="border-color:rgba(255,51,102,0.2)" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="secret-item-username">Username / Label</label>
+      <input type="text" class="form-input" id="secret-item-username" placeholder="Optional" style="border-color:rgba(255,51,102,0.2)" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="secret-item-password">Secret / Password</label>
+      <div class="pw-input-wrap">
+        <input type="password" class="form-input" id="secret-item-password" placeholder="Enter secret value" style="border-color:rgba(255,51,102,0.2)" />
+        <button class="pw-toggle" id="secret-pw-toggle" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="secret-item-notes">Notes</label>
+      <textarea class="form-input" id="secret-item-notes" placeholder="Optional notes" rows="3" style="border-color:rgba(255,51,102,0.2)"></textarea>
+    </div>
+    <button class="btn-primary" id="secret-save-btn" style="background:linear-gradient(135deg,#FF3366,#CC0033)">Save Secret</button>
+    <button class="btn-danger hidden" id="secret-delete-btn">Delete Secret</button>
+    <button class="btn-secondary secret-modal-cancel">Cancel</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN APP SHELL
+═══════════════════════════════════════════════════════════════ -->
+
+<!-- Header -->
+<header id="app-header">
+  <div class="header-logo">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L20 5.5V11Q20 18 12 21Q4 18 4 11V5.5Z" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.8)" stroke-width="1.2"/>
+      <rect x="8.5" y="13" width="7" height="5" rx="1.5" fill="white"/>
+      <path d="M9.5 13V10.5Q9.5 8 12 8Q14.5 8 14.5 10.5V13" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+  <span class="header-title">Vault<span>X</span></span>
+  <div class="header-indicators">
+    <div class="net-indicator" id="net-indicator" title="Network status"></div>
+    <div class="sync-indicator" id="sync-indicator" title="Sync status">↻</div>
+    <button class="header-search-btn" id="header-search-btn" title="Search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Search Bar -->
+<div id="search-bar">
+  <input type="search" id="search-input" placeholder="Search vault…" autocomplete="off" autocorrect="off" />
+</div>
+<div id="search-results-panel" style="display:none;position:fixed;top:calc(60px + 52px);left:0;right:0;bottom:64px;overflow-y:auto;background:var(--clr-bg);z-index:98;padding:16px">
+  <div id="search-results-list"></div>
+</div>
+
+<!-- Main content -->
+<main id="app-main">
+
+  <!-- ── PASSWORDS TAB ──────────────────────────────────── -->
+  <section class="tab-panel" id="passwords-panel">
+    <div class="section-header">
+      <span class="section-title">Passwords</span>
+      <span class="section-count" id="pw-count">0</span>
+    </div>
+    <div class="folder-chips" id="passwords-folder-chips"></div>
+    <div class="vault-items" id="passwords-list"></div>
+  </section>
+
+  <!-- ── FILES TAB ─────────────────────────────────────── -->
+  <section class="tab-panel" id="files-panel">
+    <div class="section-header">
+      <span class="section-title">Files</span>
+      <span class="section-count" id="files-count">0</span>
+    </div>
+    <div class="folder-chips" id="files-folder-chips"></div>
+    <div class="vault-items" id="files-list"></div>
+  </section>
+
+  <!-- ── DEV KEYS TAB ──────────────────────────────────── -->
+  <section class="tab-panel" id="dev-panel">
+    <div class="section-header">
+      <span class="section-title">Dev Keys</span>
+      <span class="section-count" id="dev-count">0</span>
+    </div>
+    <div class="folder-chips" id="dev-folder-chips"></div>
+    <div class="vault-items" id="dev-list"></div>
+  </section>
+
+  <!-- ── SETTINGS TAB ──────────────────────────────────── -->
+  <section class="tab-panel" id="settings-panel">
+    <div id="settings-panel-content"><!-- rendered by SettingsModule --></div>
+  </section>
+
+</main>
+
+<!-- FAB -->
+<button id="fab" aria-label="Add item">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- Bottom Navigation -->
+<nav id="bottom-nav">
+  <div class="nav-item active" data-tab="passwords">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    Passwords
+  </div>
+  <div class="nav-item" data-tab="files">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+    </svg>
+    Files
+  </div>
+  <div class="nav-item" data-tab="dev">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+    </svg>
+    Dev Keys
+  </div>
+  <div class="nav-item" data-tab="settings" title="Long press for Secret Vault">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    Settings
+  </div>
+</nav>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════════════════ -->
+
+<!-- Add/Edit Password Modal -->
+<div class="modal-backdrop" id="item-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Add Password</div>
+    <div class="form-group">
+      <label class="form-label" for="pw-title">Title</label>
+      <input type="text" class="form-input" id="pw-title" placeholder="e.g. Gmail, Netflix…" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="pw-username">Username / Email</label>
+        <input type="text" class="form-input" id="pw-username" placeholder="user@example.com" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="pw-url">Website URL</label>
+        <input type="url" class="form-input" id="pw-url" placeholder="https://…" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="pw-password">Password</label>
+      <div class="pw-input-wrap">
+        <input type="password" class="form-input" id="pw-password" placeholder="Enter or generate password" autocomplete="new-password" />
+        <button class="pw-toggle" id="toggle-pw-visibility" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <button class="pw-generate-btn" id="pw-generate" type="button">⚡ Generate Strong Password</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="pw-folder-select">Folder</label>
+      <select class="form-input" id="pw-folder-select">
+        <option value="">No folder</option>
+      </select>
+      <input type="hidden" id="pw-folder-id" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="pw-notes">Notes</label>
+      <textarea class="form-input" id="pw-notes" placeholder="Optional notes…" rows="2"></textarea>
+    </div>
+    <button class="btn-primary" id="modal-save-btn" data-mode="add">Save Password</button>
+    <button class="btn-danger hidden" id="modal-delete-btn">Delete Password</button>
+    <button class="btn-secondary" onclick="closeModal('item-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- View Password Modal -->
+<div class="modal-backdrop" id="view-password-modal" id2="view-pw-modal-backdrop">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="view-pw-title" class="modal-title"></div>
+    <div style="background:var(--clr-card);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div style="font-size:0.7rem;color:var(--clr-text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Username</div>
+        <div id="view-pw-username" style="font-size:0.9rem"></div>
+      </div>
+      <div>
+        <div style="font-size:0.7rem;color:var(--clr-text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Website</div>
+        <div id="view-pw-url" style="font-size:0.9rem;color:var(--clr-primary)"></div>
+      </div>
+      <div>
+        <div style="font-size:0.7rem;color:var(--clr-text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Password</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="view-pw-password" style="font-family:monospace;font-size:1rem;letter-spacing:2px;flex:1"></div>
+          <button class="card-action-btn" id="view-pw-toggle" title="Show/Hide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button class="card-action-btn" id="view-pw-copy" title="Copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <div class="strength-bar" style="margin-top:10px"><div class="strength-bar-fill" id="view-pw-strength"></div></div>
+      </div>
+      <div>
+        <div style="font-size:0.7rem;color:var(--clr-text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Notes</div>
+        <div id="view-pw-notes" style="font-size:0.85rem;color:var(--clr-text-muted);line-height:1.5"></div>
+      </div>
+    </div>
+    <button class="btn-primary" id="view-pw-edit-btn">Edit Password</button>
+    <button class="btn-secondary" onclick="closeModal('view-password-modal')">Close</button>
+  </div>
+</div>
+
+<!-- File Upload Modal -->
+<div class="modal-backdrop" id="file-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Upload File</div>
+    <div class="form-group">
+      <div class="file-drop-zone" id="file-drop-zone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div>Tap to select file</div>
+        <div style="font-size:0.75rem;margin-top:4px;color:var(--clr-text-muted)">or drag &amp; drop · Max 50MB</div>
+      </div>
+      <input type="file" id="file-upload-input" />
+    </div>
+    <div id="file-preview"></div>
+    <div class="form-group">
+      <label class="form-label" for="file-title">Title</label>
+      <input type="text" class="form-input" id="file-title" placeholder="File name or description" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="file-folder-select">Folder</label>
+      <select class="form-input" id="file-folder-select">
+        <option value="">No folder</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="file-upload-btn">Upload &amp; Save</button>
+    <button class="btn-secondary" id="file-cancel-btn">Cancel</button>
+  </div>
+</div>
+
+<!-- Developer Key Modal -->
+<div class="modal-backdrop" id="dev-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="dev-modal-title">Add Developer Key</div>
+    <div class="form-group">
+      <label class="form-label" for="dev-key-title">Title</label>
+      <input type="text" class="form-input" id="dev-key-title" placeholder="e.g. Stripe API Key" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="dev-key-type">Key Type</label>
+        <select class="form-input" id="dev-key-type">
+          <option value="api_key">API Key</option>
+          <option value="jwt_token">JWT Token</option>
+          <option value="ssh_key">SSH Key</option>
+          <option value="env_vars">Env Variables</option>
+          <option value="database_url">Database URL</option>
+          <option value="webhook">Webhook URL</option>
+          <option value="oauth">OAuth Credentials</option>
+          <option value="certificate">Certificate / PEM</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="dev-key-name">Key Name / Label</label>
+        <input type="text" class="form-input" id="dev-key-name" placeholder="e.g. STRIPE_SECRET_KEY" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="dev-key-value">Key Value</label>
+      <textarea class="form-input" id="dev-key-value" rows="4" placeholder="Paste your API key, token, or credentials here…" style="font-family:'SF Mono','Fira Code',monospace;font-size:0.82rem"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="dev-folder-select">Folder</label>
+      <select class="form-input" id="dev-folder-select">
+        <option value="">No folder</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="dev-key-notes">Notes</label>
+      <textarea class="form-input" id="dev-key-notes" rows="2" placeholder="e.g. Production Stripe key, expires 2025-01-01"></textarea>
+    </div>
+    <button class="btn-primary" id="dev-save-btn" data-mode="add">Save Key</button>
+    <button class="btn-danger hidden" id="dev-delete-btn">Delete Key</button>
+    <button class="btn-secondary" id="dev-cancel-btn">Cancel</button>
+  </div>
+</div>
+
+<!-- Manage Folders Modal -->
+<div class="modal-backdrop" id="manage-folders-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title" style="margin-bottom:0">Manage Folders</div>
+      <button class="btn-secondary" id="manage-folders-add-btn" style="width:auto;padding:8px 14px;margin:0;font-size:0.82rem">+ New</button>
+    </div>
+    <div class="folder-list-modal" id="manage-folders-list"></div>
+    <button class="btn-secondary" id="manage-folders-close" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/db.js"></script>
+<script src="/js/sync.js"></script>
+<script src="/js/lock.js"></script>
+<script src="/js/folders.js"></script>
+<script src="/js/search.js"></script>
+<script src="/js/favorites.js"></script>
+<script src="/js/vault-passwords.js"></script>
+<script src="/js/vault-files.js"></script>
+<script src="/js/vault-dev.js"></script>
+<script src="/js/vault-secret.js"></script>
+<script src="/js/settings.js"></script>
+<script src="/js/app.js"></script>
+
+<!-- PWA install prompt -->
+<script>
+  // Secret PIN toggle
+  document.getElementById('secret-pw-toggle')?.addEventListener('click', () => {
+    const input = document.getElementById('secret-item-password');
+    if (!input) return;
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  // View pw modal backdrop
+  document.getElementById('view-password-modal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal('view-password-modal');
+  });
+
+  // PWA install
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+</script>
+</body>
+</html>
