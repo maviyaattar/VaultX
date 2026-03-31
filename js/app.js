@@ -350,6 +350,23 @@ function setupGlobalEvents() {
 
 // ── Bootstrap ─────────────────────────────────────────────────
 async function init() {
+   alert("INIT STARTED 🔥");   // ✅ TEST
+
+  // Open databases
+  await vaultDB.open();
+  await secretDB.open();
+
+  alert("DB OPENED ✅");      // ✅ TEST
+
+  // Setup lock screen
+  LockScreen.init(() => {
+    window.dispatchEvent(new CustomEvent('vault:unlocked'));
+  });
+
+  alert("CALLING SUPABASE 🚀"); // ✅ TEST
+
+  // Init Supabase & sync
+  initSupabase();
   // Open databases
   await vaultDB.open();
   await secretDB.open();
