@@ -314,23 +314,21 @@ let _vaultUnlockedListenerAdded = false;
 function initSupabase() {
   try {
     if (typeof supabase !== 'undefined' && supabase.createClient) {
+
       supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
       initSyncEngines(supabaseClient);
-      const syncEl = document.getElementById('sync-indicator');
-      syncEngine.setIndicator(syncEl);
-      // Start auto-sync with interval for main vault; secret vault gets online
-      // listener only (no separate interval needed).
-      syncEngine.startAutoSync(60000);
+
+      // 🔥 FAST SYNC (3 sec)
+      syncEngine.startAutoSync(3000);
       secretSyncEngine.startAutoSync(0);
-      // Sync after unlock (guard against duplicate listeners on re-init)
-      if (!_vaultUnlockedListenerAdded) {
-        _vaultUnlockedListenerAdded = true;
-        window.addEventListener('vault:unlocked', () => trySyncAll());
-      }
-      // Delay by one tick to let the rest of init() finish before syncing.
-      if (navigator.onLine) {
-        setTimeout(trySyncAll, 500);
-      }
+
+      // 🔥 FORCE FIRST SYNC
+      setTimeout(() => {
+        alert("FORCE SYNC TRIGGERED");
+        trySyncAll();
+      }, 2000);
+
     }
   } catch (err) {
     console.warn('Supabase init failed:', err);
